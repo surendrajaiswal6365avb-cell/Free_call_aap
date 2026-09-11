@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free Call Aap</title>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<style>
+body{font-family:sans-serif;text-align:center;background:#111;color:#fff;padding:20px}
+.box{background:#222;padding:20px;border-radius:15px;margin-top:20px}
+input{padding:12px;width:80%;border-radius:10px;border:none;margin:10px 0;font-size:18px}
+button{padding:12px 25px;border-radius:10px;border:none;background:#00ff88;font-size:18px;font-weight:bold}
+h1{color:#00ff88}
+</style>
+</head>
+<body>
+<h1>📞 Free Call Aap</h1>
+<div class="box">
+<p>तुम्हारा Number:</p>
+<h2 id="myNum">बन रहा है...</h2>
+<input id="otherNum" placeholder="दूसरे का Number डालो">
+<br>
+<button onclick="call()">Call लगाओ</button>
+<button onclick="hang()" style="background:red;color:white">काटो</button>
+<audio id="audio" autoplay></audio>
+<p id="status"></p>
+</div>
+<script>
+let myNumber = localStorage.getItem('myCallNumber');
+if(!myNumber){
+  myNumber = '98' + Math.floor(10000000 + Math.random()*90000000);
+  localStorage.setItem('myCallNumber', myNumber);
+}
+document.getElementById('myNum').innerText = myNumber;
+
+const peer = new Peer(myNumber);
+let currentCall;
+peer.on('call', c=>{
+  currentCall=c;
+  document.getElementById('status').innerText='Call आ रहा है...';
+  c.answer(new MediaStream());
+  c.on('stream', s=>{ document.getElementById('audio').srcObject=s; document.getElementById('status').innerText='Call चल रहा है'; });
+});
+
+async function call(){
+  let other = document.getElementById('otherNum').value;
+  if(!other) return alert('Number डालो');
+  let stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  let c = peer.call(other, stream);
+  currentCall=c;
+  c.on('stream', s=>{ document.getElementById('audio').srcObject=s; document.getElementById('status').innerText='Call लग गया'; });
+}
+function hang(){ if(currentCall) currentCall.close(); location.reload(); }
+peer.on('open', ()=>{ document.getElementById('status').innerText='Ready - अब Call कर सकते हो'; });
+</script>
+</body>
+</html>
