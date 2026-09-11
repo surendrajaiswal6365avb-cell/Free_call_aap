@@ -1,56 +1,95 @@
 <!DOCTYPE html>
-<html>
+<html lang="hi">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Free Call Aap</title>
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Call App - Surendra</title>
+<script src="https://unpkg.com/peerjs@1.5.3/dist/peerjs.min.js"></script>
 <style>
-body{font-family:sans-serif;text-align:center;background:#111;color:#fff;padding:20px}
-.box{background:#222;padding:20px;border-radius:15px;margin-top:20px}
-input{padding:12px;width:80%;border-radius:10px;border:none;margin:10px 0;font-size:18px}
-button{padding:12px 25px;border-radius:10px;border:none;background:#00ff88;font-size:18px;font-weight:bold}
-h1{color:#00ff88}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
+body{background:#0f0f0f;color:white;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+.card{background:#1e1e1e;width:100%;max-width:400px;border-radius:20px;padding:25px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+h2{text-align:center;color:#25D366;margin-bottom:10px}
+.my-id{background:#2a2a2a;border-radius:12px;padding:15px;text-align:center;margin:15px 0;border:1px dashed #25D366}
+.my-id b{font-size:24px;color:#25D366;letter-spacing:2px}
+input{width:100%;padding:15px;border-radius:12px;border:none;background:#2a2a2a;color:white;font-size:18px;margin:10px 0;text-align:center}
+.btn{width:100%;padding:15px;border-radius:12px;border:none;font-size:18px;font-weight:bold;cursor:pointer;margin-top:10px}
+.call{background:#25D366;color:black}
+.end{background:#ff3b30;color:white;display:none}
+.status{text-align:center;margin:15px 0;color:#aaa;font-size:14px}
+audio{display:none}
 </style>
 </head>
 <body>
-<h1>📞 Free Call Aap</h1>
-<div class="box">
-<p>तुम्हारा Number:</p>
-<h2 id="myNum">बन रहा है...</h2>
-<input id="otherNum" placeholder="दूसरे का Number डालो">
-<br>
-<button onclick="call()">Call लगाओ</button>
-<button onclick="hang()" style="background:red;color:white">काटो</button>
-<audio id="audio" autoplay></audio>
-<p id="status"></p>
+<div class="card">
+<h2>📞 FREE CALL APP</h2>
+<p style="text-align:center;font-size:13px;color:#888">Bina SIM, Bina Balance - Internet se Free Baat</p>
+
+<div class="my-id">
+<div style="font-size:12px;color:#888">TUMHARA NUMBER</div>
+<b id="myId">...</b>
+<div style="font-size:11px;margin-top:5px">Isko dusre ko bhejo</div>
 </div>
+
+<div class="status" id="status">ID ban raha hai...</div>
+
+<input type="text" id="remoteId" placeholder="Dusre ka Number Yaha Daalo">
+<button class="btn call" id="callBtn">📞 CALL LAGAO</button>
+<button class="btn end" id="endBtn">❌ CALL KATO</button>
+
+<audio id="remoteAudio" autoplay></audio>
+</div>
+
 <script>
-let myNumber = localStorage.getItem('myCallNumber');
-if(!myNumber){
-  myNumber = '98' + Math.floor(10000000 + Math.random()*90000000);
-  localStorage.setItem('myCallNumber', myNumber);
-}
-document.getElementById('myNum').innerText = myNumber;
+let peer, currentCall;
+let myPeerId = Math.floor(100000 + Math.random() * 900000).toString();
 
-const peer = new Peer(myNumber);
-let currentCall;
-peer.on('call', c=>{
-  currentCall=c;
-  document.getElementById('status').innerText='Call आ रहा है...';
-  c.answer(new MediaStream());
-  c.on('stream', s=>{ document.getElementById('audio').srcObject=s; document.getElementById('status').innerText='Call चल रहा है'; });
-});
+function init(){
+  peer = new Peer(myPeerId);
+  peer.on('open', id => {
+    document.getElementById('myId').innerText = id;
+    document.getElementById('status').innerText = "✅ Ready Hai! Ab Call Karo";
+  });
 
-async function call(){
-  let other = document.getElementById('otherNum').value;
-  if(!other) return alert('Number डालो');
-  let stream = await navigator.mediaDevices.getUserMedia({audio:true});
-  let c = peer.call(other, stream);
-  currentCall=c;
-  c.on('stream', s=>{ document.getElementById('audio').srcObject=s; document.getElementById('status').innerText='Call लग गया'; });
+  peer.on('call', call => {
+    document.getElementById('status').innerText = "📞 Call Aa Raha Hai...";
+    navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+      call.answer(stream);
+      handleCall(call, stream);
+    });
+  });
 }
-function hang(){ if(currentCall) currentCall.close(); location.reload(); }
-peer.on('open', ()=>{ document.getElementById('status').innerText='Ready - अब Call कर सकते हो'; });
+
+function handleCall(call, localStream){
+  currentCall = call;
+  document.getElementById('callBtn').style.display='none';
+  document.getElementById('endBtn').style.display='block';
+  document.getElementById('status').innerText = "🔊 Baat Ho Rahi Hai...";
+
+  call.on('stream', remoteStream=>{
+    document.getElementById('remoteAudio').srcObject = remoteStream;
+  });
+  call.on('close', endCall);
+}
+
+function endCall(){
+  if(currentCall) currentCall.close();
+  document.getElementById('callBtn').style.display='block';
+  document.getElementById('endBtn').style.display='none';
+  document.getElementById('status').innerText = "✅ Ready Hai!";
+}
+
+document.getElementById('callBtn').onclick = () => {
+  let remoteId = document.getElementById('remoteId').value.trim();
+  if(!remoteId) return alert("Dusre ka Number Daalo!");
+  navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+    let call = peer.call(remoteId, stream);
+    handleCall(call, stream);
+  }).catch(()=>alert("Mic ki Permission Do!"));
+};
+
+document.getElementById('endBtn').onclick = endCall;
+init();
 </script>
 </body>
 </html>
