@@ -1,0 +1,9 @@
+{
+  "name": "Free Call App",
+  "short_name": "FreeCall",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#070d1a",
+  "theme_color": "#22c55e",
+  "icons": [{"src": "https://cdn-icons-png.flaticon.com/512/724/724664.png","sizes": "512x512","type": "image/png"}]
+}
