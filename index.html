@@ -1,95 +1,109 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Free Call App - Surendra</title>
-<script src="https://unpkg.com/peerjs@1.5.3/dist/peerjs.min.js"></script>
+<title>Free Call App</title>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
-body{background:#0f0f0f;color:white;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
-.card{background:#1e1e1e;width:100%;max-width:400px;border-radius:20px;padding:25px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
-h2{text-align:center;color:#25D366;margin-bottom:10px}
-.my-id{background:#2a2a2a;border-radius:12px;padding:15px;text-align:center;margin:15px 0;border:1px dashed #25D366}
-.my-id b{font-size:24px;color:#25D366;letter-spacing:2px}
-input{width:100%;padding:15px;border-radius:12px;border:none;background:#2a2a2a;color:white;font-size:18px;margin:10px 0;text-align:center}
-.btn{width:100%;padding:15px;border-radius:12px;border:none;font-size:18px;font-weight:bold;cursor:pointer;margin-top:10px}
-.call{background:#25D366;color:black}
-.end{background:#ff3b30;color:white;display:none}
-.status{text-align:center;margin:15px 0;color:#aaa;font-size:14px}
-audio{display:none}
+body{background:#000;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
+.card{background:#1a1a1a;padding:25px;border-radius:25px;width:90%;max-width:350px;text-align:center;border:1px solid #333}
+h1{color:#00ff66;margin:10px 0}
+.myid{border:2px dashed #00ff66;padding:15px;border-radius:15px;margin:15px 0}
+.myid b{font-size:32px;color:#00ff66;display:block}
+input{width:100%;padding:15px;border-radius:12px;border:none;background:#2a2a2a;color:#fff;text-align:center;font-size:18px;margin:10px 0;box-sizing:border-box}
+.btn{width:100%;padding:16px;border-radius:12px;border:none;font-size:20px;font-weight:bold;margin-top:10px}
+.call{background:#00ff66;color:#000}
+.answer{background:#00ff66;color:#000;display:none}
+.cut{background:#ff3b30;color:#fff;display:none;margin-top:8px}
+#status{margin:10px 0;color:#aaa}
+#incomingBox{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);justify-content:center;align-items:center;flex-direction:column;z-index:99}
 </style>
 </head>
 <body>
+
 <div class="card">
-<h2>📞 FREE CALL APP</h2>
-<p style="text-align:center;font-size:13px;color:#888">Bina SIM, Bina Balance - Internet se Free Baat</p>
+<h1>📞 FREE CALL APP</h1>
+<p style="color:#aaa">Bina SIM, Bina Balance</p>
 
-<div class="my-id">
-<div style="font-size:12px;color:#888">TUMHARA NUMBER</div>
+<div class="myid">
+<span>TUMHARA NUMBER</span>
 <b id="myId">...</b>
-<div style="font-size:11px;margin-top:5px">Isko dusre ko bhejo</div>
+<span style="font-size:12px">Isko dusre ko bhejo</span>
 </div>
 
-<div class="status" id="status">ID ban raha hai...</div>
+<div id="status">✅ Ready Hai! Ab Call Karo</div>
 
-<input type="text" id="remoteId" placeholder="Dusre ka Number Yaha Daalo">
-<button class="btn call" id="callBtn">📞 CALL LAGAO</button>
-<button class="btn end" id="endBtn">❌ CALL KATO</button>
+<input type="number" id="otherId" placeholder="Dusre ka Number Yaha Daalo">
 
-<audio id="remoteAudio" autoplay></audio>
+<button class="btn call" onclick="lagaoCall()">📞 CALL LAGAO</button>
+<button class="btn cut" id="cutBtn" onclick="callKato()">❌ CALL KATO</button>
 </div>
+
+<!-- Incoming Call Screen -->
+<div id="incomingBox">
+<h1 style="font-size:40px">📲 Incoming Call</h1>
+<h2 id="callerId" style="color:#00ff66;font-size:30px"></h2>
+<button class="btn answer" id="ansBtn" onclick="uthaoCall()" style="display:block;width:250px">✅ UTHAO</button>
+<button class="btn cut" onclick="callKato()" style="display:block;width:250px">❌ KAATO</button>
+</div>
+
+<audio id="ringback" loop><source src="https://cdn.pixabay.com/audio/2022/03/24/audio_2a8d3e2f1b.mp3"></audio>
+<audio id="incomingRing" loop><source src="https://cdn.pixabay.com/audio/2021/08/04/audio_a9bd4171e8.mp3"></audio>
 
 <script>
-let peer, currentCall;
-let myPeerId = Math.floor(100000 + Math.random() * 900000).toString();
+let peer = new Peer(Math.floor(100000+Math.random()*900000).toString());
+let currentCall = null;
+let localStream = null;
 
-function init(){
-  peer = new Peer(myPeerId);
-  peer.on('open', id => {
-    document.getElementById('myId').innerText = id;
-    document.getElementById('status').innerText = "✅ Ready Hai! Ab Call Karo";
-  });
+peer.on('open', id => { document.getElementById('myId').innerText = id; });
 
-  peer.on('call', call => {
-    document.getElementById('status').innerText = "📞 Call Aa Raha Hai...";
-    navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
-      call.answer(stream);
-      handleCall(call, stream);
-    });
-  });
-}
-
-function handleCall(call, localStream){
+peer.on('call', call => {
   currentCall = call;
-  document.getElementById('callBtn').style.display='none';
-  document.getElementById('endBtn').style.display='block';
-  document.getElementById('status').innerText = "🔊 Baat Ho Rahi Hai...";
+  document.getElementById('callerId').innerText = call.peer;
+  document.getElementById('incomingBox').style.display='flex';
+  document.getElementById('incomingRing').play().catch(()=>{});
+  if(navigator.vibrate) navigator.vibrate([500,200,500,200,500]);
+});
 
-  call.on('stream', remoteStream=>{
-    document.getElementById('remoteAudio').srcObject = remoteStream;
+async function lagaoCall(){
+  let other = document.getElementById('otherId').value;
+  if(!other) return alert("Number Daalo!");
+  localStream = await navigator.mediaDevices.getUserMedia({audio:true});
+  document.getElementById('status').innerText = "📞 Ringing... "+other;
+  document.getElementById('ringback').play().catch(()=>{});
+  document.getElementById('cutBtn').style.display='block';
+  let call = peer.call(other, localStream);
+  currentCall = call;
+  call.on('stream', remoteStream => {
+    document.getElementById('ringback').pause();
+    document.getElementById('status').innerText = "✅ Baat Chalu Hai...";
+    let audio = new Audio(); audio.srcObject = remoteStream; audio.play();
   });
-  call.on('close', endCall);
 }
 
-function endCall(){
+async function uthaoCall(){
+  document.getElementById('incomingRing').pause();
+  document.getElementById('incomingBox').style.display='none';
+  localStream = await navigator.mediaDevices.getUserMedia({audio:true});
+  currentCall.answer(localStream);
+  currentCall.on('stream', remoteStream => {
+    document.getElementById('status').innerText = "✅ Baat Chalu Hai...";
+    let audio = new Audio(); audio.srcObject = remoteStream; audio.play();
+  });
+  document.getElementById('cutBtn').style.display='block';
+}
+
+function callKato(){
+  document.getElementById('ringback').pause();
+  document.getElementById('incomingRing').pause();
+  document.getElementById('incomingBox').style.display='none';
+  document.getElementById('cutBtn').style.display='none';
+  document.getElementById('status').innerText = "❌ Call Kat Gaya";
   if(currentCall) currentCall.close();
-  document.getElementById('callBtn').style.display='block';
-  document.getElementById('endBtn').style.display='none';
-  document.getElementById('status').innerText = "✅ Ready Hai!";
+  if(localStream) localStream.getTracks().forEach(t=>t.stop());
+  if(navigator.vibrate) navigator.vibrate(0);
 }
-
-document.getElementById('callBtn').onclick = () => {
-  let remoteId = document.getElementById('remoteId').value.trim();
-  if(!remoteId) return alert("Dusre ka Number Daalo!");
-  navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
-    let call = peer.call(remoteId, stream);
-    handleCall(call, stream);
-  }).catch(()=>alert("Mic ki Permission Do!"));
-};
-
-document.getElementById('endBtn').onclick = endCall;
-init();
 </script>
 </body>
-</html>
+                                </html>
