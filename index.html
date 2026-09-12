@@ -1,131 +1,157 @@
-
-       <!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Free Call App</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
-body{background:#000;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
-.card{background:#1a1a1a;padding:25px;border-radius:25px;width:90%;max-width:360px;text-align:center;border:1px solid #333}
-h1{color:#00ff66;margin:10px 0;font-size:28px}
-.myid{border:2px dashed #00ff66;padding:15px;border-radius:15px;margin:15px 0}
-.myid b{font-size:36px;color:#00ff66;display:block}
-input{width:100%;padding:15px;border-radius:12px;border:none;background:#2a2a2a;color:#fff;text-align:center;font-size:18px;margin:10px 0;box-sizing:border-box}
-.btn{width:100%;padding:16px;border-radius:12px;border:none;font-size:20px;font-weight:bold;margin-top:10px;cursor:pointer}
-.call{background:#00ff66;color:#000}
-.cut{background:#ff3b30;color:#fff;display:none}
-#status{margin:15px 0;color:#aaa;font-size:14px}
-#incomingBox{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;justify-content:center;align-items:center;flex-direction:column;z-index:999}
-#remoteAudio{display:none}
+*{box-sizing:border-box;margin:0;padding:0;font-family:sans-serif}
+body{background:#0f172a;color:white;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.header{padding:15px;text-align:center;background:#1e293b}
+.my-id{font-size:32px;font-weight:bold;letter-spacing:3px;color:#22c55e;margin:10px 0}
+.status{font-size:14px;color:#94a3b8}
+.dialer{flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px}
+.input-box{display:flex;gap:10px;margin-bottom:25px}
+#callId{flex:1;padding:18px;font-size:22px;border-radius:12px;border:none;text-align:center;letter-spacing:2px;outline:none;background:#1e293b;color:white}
+.btn-call{padding:18px 25px;background:#22c55e;color:black;font-weight:bold;border:none;border-radius:12px;font-size:18px}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.key{padding:20px;background:#1e293b;border-radius:12px;text-align:center;font-size:24px;font-weight:bold}
+.key:active{background:#334155}
+.call-screen{position:fixed;top:0;left:0;right:0;bottom:0;background:#0f172a;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center}
+.call-screen.active{display:flex}
+.avatar{width:120px;height:120px;background:#22c55e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:50px;margin-bottom:20px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+.btn-hang{margin-top:40px;padding:18px 50px;background:#ef4444;border:none;border-radius:50px;color:white;font-size:20px;font-weight:bold}
+.btn-ans{padding:18px 50px;background:#22c55e;border:none;border-radius:50px;color:black;font-size:20px;font-weight:bold;margin:10px}
+#incomingBox{position:fixed;bottom:0;left:0;right:0;background:#1e293b;padding:25px;border-radius:25px 25px 0 0;z-index:200;display:none;text-align:center;transform:translateY(100%);transition:0.3s}
+#incomingBox.show{display:block;transform:translateY(0)}
 </style>
 </head>
 <body>
+<div class="header">
+<div style="font-size:14px;opacity:0.7">TUMHARA NUMBER</div>
+<div class="my-id" id="myIdDisplay">.....</div>
+<div class="status" id="statusText">Connecting...</div>
+</div>
+<div class="dialer">
+<div class="input-box">
+<input id="callId" type="number" placeholder="Number dalo">
+<button class="btn-call" onclick="makeCall()">CALL</button>
+</div>
+<div class="keypad" id="keypad"></div>
+</div>
 
-<div class="card">
-<h1>📞 FREE CALL APP</h1>
-<p style="color:#888;margin-top:-5px">Bina SIM, Bina Balance</p>
-<div class="myid"><span>TUMHARA NUMBER</span><b id="myId">...</b><span style="font-size:12px;color:#888">Isko dusre ko bhejo</span></div>
-<div id="status">🟢 Ready Hai! Call Karo</div>
-<input type="number" id="otherId" placeholder="Dusre ka Number Yaha Daalo">
-<button class="btn call" id="callBtn" onclick="lagaoCall()">📞 CALL LAGAO</button>
-<button class="btn cut" id="cutBtn" onclick="endCall()">❌ CALL KATO</button>
-<p style="font-size:11px;color:#555;margin-top:15px">Note: Call lagate hi Mic Allow karna hai</p>
+<div class="call-screen" id="callScreen">
+<div class="avatar">📞</div>
+<h2 id="callStatusText">Calling...</h2>
+<p id="callIdText" style="color:#94a3b8;margin-top:10px"></p>
+<audio id="remoteAudio" autoplay playsinline></audio>
+<button class="btn-hang" onclick="endCall()">Kaat Do</button>
 </div>
 
 <div id="incomingBox">
-<h1 style="font-size:40px">📲 Incoming Call</h1>
-<h2 id="callerId" style="color:#00ff66;font-size:32px"></h2>
-<p style="color:#888">Koi tumhe call kar raha hai</p>
-<button class="btn call" onclick="uthaoCall()" style="width:280px">✅ UTHAO</button>
-<button class="btn cut" onclick="endCall()" style="display:block;width:280px;margin-top:10px">❌ KAATO</button>
+<h3 style="margin-bottom:5px">Incoming Call...</h3>
+<h1 id="callerId" style="font-size:32px;color:#22c55e;margin:10px 0"></h1>
+<div style="display:flex;justify-content:center;gap:20px;margin-top:20px">
+<button class="btn-hang" onclick="rejectCall()" style="margin:0;padding:15px 30px">Kaat Do</button>
+<button class="btn-ans" onclick="answerCall()">Uthao</button>
 </div>
-
-<audio id="remoteAudio" autoplay playsinline></audio>
-<audio id="ringback" loop><source src="https://cdn.freesound.org/previews/131/131142_2337290-lq.mp3" type="audio/mpeg"></audio>
-<audio id="incomingRing" loop><source src="https://cdn.freesound.org/previews/438/438876_9143577-lq.mp3" type="audio/mpeg"></audio>
+<audio id="incomingRing" loop src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_3a0a5e7f8c.mp3?filename=phone-ringing-101147.mp3"></audio>
+</div>
 
 <script>
 let peer, currentCall, localStream;
-const myId = Math.floor(100000 + Math.random() * 900000).toString();
+const myId = Math.floor(100000 + Math.random()*900000).toString();
 
 peer = new Peer(myId, {
-  config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }, { 'urls': 'stun:stun1.l.google.com:19302' }] }
+  config: { 'iceServers': [ { 'urls': 'stun:stun.l.google.com:19302' }, { 'urls': 'stun:stun1.l.google.com:19302' }, { 'urls': 'turn:openrelay.metered.ca:80', 'username': 'openrelayproject', 'credential': 'openrelayproject' }, { 'urls': 'turn:openrelay.metered.ca:443', 'username': 'openrelayproject', 'credential': 'openrelayproject' } ] }
 });
 
-peer.on('open', id => { document.getElementById('myId').innerText = id; });
-peer.on('error', err => { document.getElementById('status').innerText = "Error: " + err.type; });
+peer.on('open', id => {
+  document.getElementById('myIdDisplay').innerText = id;
+  document.getElementById('statusText').innerText = 'Online - Call ke liye ready';
+});
+
+peer.on('error', err => {
+  document.getElementById('statusText').innerText = err.type;
+});
 
 peer.on('call', call => {
   currentCall = call;
   document.getElementById('callerId').innerText = call.peer;
-  document.getElementById('incomingBox').style.display = 'flex';
+  document.getElementById('incomingBox').classList.add('show');
   document.getElementById('incomingRing').play().catch(()=>{});
-  if(navigator.vibrate) navigator.vibrate([500,200,500]);
+  if(navigator.vibrate) navigator.vibrate([500,300,500]);
 });
 
 async function getMic(){
   if(localStream) return localStream;
-  localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true } });
+  localStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:true}, video:false});
   return localStream;
 }
 
-async function lagaoCall(){
-  let other = document.getElementById('otherId').value.trim();
-  if(!other) return alert("Number Daalo!");
-  if(other === myId) return alert("Apna hi number daal diya!");
+async function makeCall(){
+  const id = document.getElementById('callId').value.trim();
+  if(!id || id.length < 5){ alert('Sahi number dalo'); return; }
   try{
-    let stream = await getMic();
-    document.getElementById('status').innerText = "📞 Ringing " + other + "...";
-    document.getElementById('ringback').play().catch(()=>{});
-    document.getElementById('callBtn').style.display='none';
-    document.getElementById('cutBtn').style.display='block';
-    let call = peer.call(other, stream);
+    const stream = await getMic();
+    document.getElementById('callScreen').classList.add('active');
+    document.getElementById('callIdText').innerText = id;
+    document.getElementById('callStatusText').innerText = 'Ringing...';
+    const call = peer.call(id, stream);
     currentCall = call;
-    call.on('stream', remoteStream => {
-      document.getElementById('ringback').pause();
-      document.getElementById('status').innerText = "✅ Baat Chalu Hai... Mic On Hai";
-      let audio = document.getElementById('remoteAudio');
-      audio.srcObject = remoteStream;
-      audio.play().catch(()=>{});
-    });
-    call.on('close', () => endCall());
-  } catch(e){ alert("Mic Allow karo! Error: "+e.message); endCall(); }
+    setupCallEvents(call);
+  }catch(e){ alert('Mic allow karo: '+e.message); }
 }
 
-async function uthaoCall(){
+async function answerCall(){
   try{
+    document.getElementById('incomingBox').classList.remove('show');
     document.getElementById('incomingRing').pause();
-    if(navigator.vibrate) navigator.vibrate(0);
-    document.getElementById('incomingBox').style.display='none';
-    let stream = await getMic();
-    document.getElementById('status').innerText = "✅ Baat Chalu Hai... Mic On Hai";
-    document.getElementById('callBtn').style.display='none';
-    document.getElementById('cutBtn').style.display='block';
+    const stream = await getMic();
     currentCall.answer(stream);
-    currentCall.on('stream', remoteStream => {
-      let audio = document.getElementById('remoteAudio');
-      audio.srcObject = remoteStream;
-      audio.play().catch(()=>{});
-    });
-    currentCall.on('close', () => endCall());
-  } catch(e){ alert("Mic Allow karo! "+e.message); endCall(); }
+    document.getElementById('callScreen').classList.add('active');
+    document.getElementById('callIdText').innerText = currentCall.peer;
+    document.getElementById('callStatusText').innerText = 'Connecting...';
+    setupCallEvents(currentCall);
+  }catch(e){ alert('Mic Error: '+e.message); }
+}
+
+function setupCallEvents(call){
+  call.on('stream', remoteStream => {
+    const audio = document.getElementById('remoteAudio');
+    audio.srcObject = remoteStream;
+    audio.play().catch(()=>{});
+    document.getElementById('callStatusText').innerText = 'Connected';
+  });
+  call.on('close', () => endCall());
+  call.on('error', () => endCall());
 }
 
 function endCall(){
-  document.getElementById('ringback').pause();
-  document.getElementById('incomingRing').pause();
-  document.getElementById('incomingBox').style.display='none';
-  document.getElementById('cutBtn').style.display='none';
-  document.getElementById('callBtn').style.display='block';
-  document.getElementById('status').innerText = "❌ Call Khatam";
-  if(navigator.vibrate) navigator.vibrate(0);
   if(currentCall) currentCall.close();
-  if(localStream){ localStream.getTracks().forEach(t=>t.stop()); localStream=null; }
-  let audio = document.getElementById('remoteAudio'); audio.srcObject=null;
-  setTimeout(()=>{ document.getElementById('status').innerText="🟢 Ready Hai! Call Karo"; }, 2000);
+  document.getElementById('callScreen').classList.remove('active');
+  document.getElementById('incomingBox').classList.remove('show');
+  document.getElementById('incomingRing').pause();
+  currentCall = null;
+  if(navigator.vibrate) navigator.vibrate(0);
 }
+
+function rejectCall(){
+  if(currentCall) currentCall.close();
+  document.getElementById('incomingBox').classList.remove('show');
+  document.getElementById('incomingRing').pause();
+}
+
+const kp = document.getElementById('keypad');
+for(let i=1;i<=9;i++){
+  const d = document.createElement('div'); d.className='key'; d.innerText=i;
+  d.onclick=()=>document.getElementById('callId').value+=i; kp.appendChild(d);
+}
+const star = document.createElement('div'); star.className='key'; star.innerText='*'; star.onclick=()=>document.getElementById('callId').value+='*'; kp.appendChild(star);
+const zero = document.createElement('div'); zero.className='key'; zero.innerText='0'; zero.onclick=()=>document.getElementById('callId').value+='0'; kp.appendChild(zero);
+const hash = document.createElement('div'); hash.className='key'; hash.innerText='⌫'; hash.onclick=()=>{let e=document.getElementById('callId'); e.value=e.value.slice(0,-1)}; kp.appendChild(hash);
 </script>
 </body>
-  </html>                         </html>
+       </html>
