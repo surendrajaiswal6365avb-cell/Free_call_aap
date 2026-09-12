@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+
+       <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -7,103 +8,124 @@
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
 body{background:#000;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
-.card{background:#1a1a1a;padding:25px;border-radius:25px;width:90%;max-width:350px;text-align:center;border:1px solid #333}
-h1{color:#00ff66;margin:10px 0}
+.card{background:#1a1a1a;padding:25px;border-radius:25px;width:90%;max-width:360px;text-align:center;border:1px solid #333}
+h1{color:#00ff66;margin:10px 0;font-size:28px}
 .myid{border:2px dashed #00ff66;padding:15px;border-radius:15px;margin:15px 0}
-.myid b{font-size:32px;color:#00ff66;display:block}
+.myid b{font-size:36px;color:#00ff66;display:block}
 input{width:100%;padding:15px;border-radius:12px;border:none;background:#2a2a2a;color:#fff;text-align:center;font-size:18px;margin:10px 0;box-sizing:border-box}
-.btn{width:100%;padding:16px;border-radius:12px;border:none;font-size:20px;font-weight:bold;margin-top:10px}
+.btn{width:100%;padding:16px;border-radius:12px;border:none;font-size:20px;font-weight:bold;margin-top:10px;cursor:pointer}
 .call{background:#00ff66;color:#000}
-.answer{background:#00ff66;color:#000;display:none}
-.cut{background:#ff3b30;color:#fff;display:none;margin-top:8px}
-#status{margin:10px 0;color:#aaa}
-#incomingBox{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);justify-content:center;align-items:center;flex-direction:column;z-index:99}
+.cut{background:#ff3b30;color:#fff;display:none}
+#status{margin:15px 0;color:#aaa;font-size:14px}
+#incomingBox{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;justify-content:center;align-items:center;flex-direction:column;z-index:999}
+#remoteAudio{display:none}
 </style>
 </head>
 <body>
 
 <div class="card">
 <h1>📞 FREE CALL APP</h1>
-<p style="color:#aaa">Bina SIM, Bina Balance</p>
-
-<div class="myid">
-<span>TUMHARA NUMBER</span>
-<b id="myId">...</b>
-<span style="font-size:12px">Isko dusre ko bhejo</span>
-</div>
-
-<div id="status">✅ Ready Hai! Ab Call Karo</div>
-
+<p style="color:#888;margin-top:-5px">Bina SIM, Bina Balance</p>
+<div class="myid"><span>TUMHARA NUMBER</span><b id="myId">...</b><span style="font-size:12px;color:#888">Isko dusre ko bhejo</span></div>
+<div id="status">🟢 Ready Hai! Call Karo</div>
 <input type="number" id="otherId" placeholder="Dusre ka Number Yaha Daalo">
-
-<button class="btn call" onclick="lagaoCall()">📞 CALL LAGAO</button>
-<button class="btn cut" id="cutBtn" onclick="callKato()">❌ CALL KATO</button>
+<button class="btn call" id="callBtn" onclick="lagaoCall()">📞 CALL LAGAO</button>
+<button class="btn cut" id="cutBtn" onclick="endCall()">❌ CALL KATO</button>
+<p style="font-size:11px;color:#555;margin-top:15px">Note: Call lagate hi Mic Allow karna hai</p>
 </div>
 
-<!-- Incoming Call Screen -->
 <div id="incomingBox">
 <h1 style="font-size:40px">📲 Incoming Call</h1>
-<h2 id="callerId" style="color:#00ff66;font-size:30px"></h2>
-<button class="btn answer" id="ansBtn" onclick="uthaoCall()" style="display:block;width:250px">✅ UTHAO</button>
-<button class="btn cut" onclick="callKato()" style="display:block;width:250px">❌ KAATO</button>
+<h2 id="callerId" style="color:#00ff66;font-size:32px"></h2>
+<p style="color:#888">Koi tumhe call kar raha hai</p>
+<button class="btn call" onclick="uthaoCall()" style="width:280px">✅ UTHAO</button>
+<button class="btn cut" onclick="endCall()" style="display:block;width:280px;margin-top:10px">❌ KAATO</button>
 </div>
 
-<audio id="ringback" loop><source src="https://cdn.pixabay.com/audio/2022/03/24/audio_2a8d3e2f1b.mp3"></audio>
-<audio id="incomingRing" loop><source src="https://cdn.pixabay.com/audio/2021/08/04/audio_a9bd4171e8.mp3"></audio>
+<audio id="remoteAudio" autoplay playsinline></audio>
+<audio id="ringback" loop><source src="https://cdn.freesound.org/previews/131/131142_2337290-lq.mp3" type="audio/mpeg"></audio>
+<audio id="incomingRing" loop><source src="https://cdn.freesound.org/previews/438/438876_9143577-lq.mp3" type="audio/mpeg"></audio>
 
 <script>
-let peer = new Peer(Math.floor(100000+Math.random()*900000).toString());
-let currentCall = null;
-let localStream = null;
+let peer, currentCall, localStream;
+const myId = Math.floor(100000 + Math.random() * 900000).toString();
+
+peer = new Peer(myId, {
+  config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }, { 'urls': 'stun:stun1.l.google.com:19302' }] }
+});
 
 peer.on('open', id => { document.getElementById('myId').innerText = id; });
+peer.on('error', err => { document.getElementById('status').innerText = "Error: " + err.type; });
 
 peer.on('call', call => {
   currentCall = call;
   document.getElementById('callerId').innerText = call.peer;
-  document.getElementById('incomingBox').style.display='flex';
+  document.getElementById('incomingBox').style.display = 'flex';
   document.getElementById('incomingRing').play().catch(()=>{});
-  if(navigator.vibrate) navigator.vibrate([500,200,500,200,500]);
+  if(navigator.vibrate) navigator.vibrate([500,200,500]);
 });
 
+async function getMic(){
+  if(localStream) return localStream;
+  localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true } });
+  return localStream;
+}
+
 async function lagaoCall(){
-  let other = document.getElementById('otherId').value;
+  let other = document.getElementById('otherId').value.trim();
   if(!other) return alert("Number Daalo!");
-  localStream = await navigator.mediaDevices.getUserMedia({audio:true});
-  document.getElementById('status').innerText = "📞 Ringing... "+other;
-  document.getElementById('ringback').play().catch(()=>{});
-  document.getElementById('cutBtn').style.display='block';
-  let call = peer.call(other, localStream);
-  currentCall = call;
-  call.on('stream', remoteStream => {
-    document.getElementById('ringback').pause();
-    document.getElementById('status').innerText = "✅ Baat Chalu Hai...";
-    let audio = new Audio(); audio.srcObject = remoteStream; audio.play();
-  });
+  if(other === myId) return alert("Apna hi number daal diya!");
+  try{
+    let stream = await getMic();
+    document.getElementById('status').innerText = "📞 Ringing " + other + "...";
+    document.getElementById('ringback').play().catch(()=>{});
+    document.getElementById('callBtn').style.display='none';
+    document.getElementById('cutBtn').style.display='block';
+    let call = peer.call(other, stream);
+    currentCall = call;
+    call.on('stream', remoteStream => {
+      document.getElementById('ringback').pause();
+      document.getElementById('status').innerText = "✅ Baat Chalu Hai... Mic On Hai";
+      let audio = document.getElementById('remoteAudio');
+      audio.srcObject = remoteStream;
+      audio.play().catch(()=>{});
+    });
+    call.on('close', () => endCall());
+  } catch(e){ alert("Mic Allow karo! Error: "+e.message); endCall(); }
 }
 
 async function uthaoCall(){
-  document.getElementById('incomingRing').pause();
-  document.getElementById('incomingBox').style.display='none';
-  localStream = await navigator.mediaDevices.getUserMedia({audio:true});
-  currentCall.answer(localStream);
-  currentCall.on('stream', remoteStream => {
-    document.getElementById('status').innerText = "✅ Baat Chalu Hai...";
-    let audio = new Audio(); audio.srcObject = remoteStream; audio.play();
-  });
-  document.getElementById('cutBtn').style.display='block';
+  try{
+    document.getElementById('incomingRing').pause();
+    if(navigator.vibrate) navigator.vibrate(0);
+    document.getElementById('incomingBox').style.display='none';
+    let stream = await getMic();
+    document.getElementById('status').innerText = "✅ Baat Chalu Hai... Mic On Hai";
+    document.getElementById('callBtn').style.display='none';
+    document.getElementById('cutBtn').style.display='block';
+    currentCall.answer(stream);
+    currentCall.on('stream', remoteStream => {
+      let audio = document.getElementById('remoteAudio');
+      audio.srcObject = remoteStream;
+      audio.play().catch(()=>{});
+    });
+    currentCall.on('close', () => endCall());
+  } catch(e){ alert("Mic Allow karo! "+e.message); endCall(); }
 }
 
-function callKato(){
+function endCall(){
   document.getElementById('ringback').pause();
   document.getElementById('incomingRing').pause();
   document.getElementById('incomingBox').style.display='none';
   document.getElementById('cutBtn').style.display='none';
-  document.getElementById('status').innerText = "❌ Call Kat Gaya";
-  if(currentCall) currentCall.close();
-  if(localStream) localStream.getTracks().forEach(t=>t.stop());
+  document.getElementById('callBtn').style.display='block';
+  document.getElementById('status').innerText = "❌ Call Khatam";
   if(navigator.vibrate) navigator.vibrate(0);
+  if(currentCall) currentCall.close();
+  if(localStream){ localStream.getTracks().forEach(t=>t.stop()); localStream=null; }
+  let audio = document.getElementById('remoteAudio'); audio.srcObject=null;
+  setTimeout(()=>{ document.getElementById('status').innerText="🟢 Ready Hai! Call Karo"; }, 2000);
 }
 </script>
 </body>
-                                </html>
+  </html>                         </html>
