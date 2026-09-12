@@ -44,7 +44,6 @@ body{background:#070d1a;color:white;min-height:100vh;display:flex;flex-direction
 <div class="my-id" id="myIdDisplay">......</div>
 <div class="st" id="statusText">● Connecting...</div>
 </div>
-
 <div class="dialer">
 <div class="disp"><input id="callId" type="tel" placeholder="Number dalo"><div onclick="document.getElementById('callId').value=document.getElementById('callId').value.slice(0,-1)" style="background:#1c2d4d;padding:6px 10px;border-radius:8px;font-size:14px">⌫</div></div>
 <div class="keypad" id="keypad"></div>
@@ -53,7 +52,6 @@ body{background:#070d1a;color:white;min-height:100vh;display:flex;flex-direction
 <div class="abtn"><button class="b-call" onclick="makeCall()">📞</button><div style="font-size:10px;color:#22c55e;font-weight:700;margin-top:4px">CALL</div></div>
 <div class="abtn"><button class="b-spk on" id="hspk" onclick="toggleSpeaker()">🔊</button><div style="font-size:10px;color:#5a7196;margin-top:4px">SPK</div></div>
 </div>
-
 <div class="contacts">
 <h4 style="font-size:11px;color:#4a5d80;margin-bottom:10px;display:flex;justify-content:space-between"><span>📒 SAVED CONTACTS</span><span id="contactCount" style="color:#22c55e">0</span></h4>
 <div class="save-row">
@@ -63,24 +61,19 @@ body{background:#070d1a;color:white;min-height:100vh;display:flex;flex-direction
 <div id="contactList"></div>
 </div>
 </div>
-
 <div class="call-screen" id="callScreen">
 <div style="text-align:center;margin-top:30px"><div id="callIdText" style="font-size:22px;font-weight:800"></div><div id="callTimer" style="font-family:monospace;color:#5a7196;font-size:18px;margin-top:6px">00:00</div><div id="callStatusText" style="margin-top:8px;font-size:11px;background:#102216;color:#22c55e;display:inline-block;padding:5px 14px;border-radius:20px">Calling...</div></div>
 <audio id="remoteAudio" autoplay playsinline></audio>
 <audio id="outRing" loop src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c8a3f4b5.mp3?filename=phone-ringing-101378.mp3"></audio>
 <div style="margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:20px;padding-bottom:20px"><div style="display:flex;gap:28px"><button id="muteBtn" onclick="toggleMute()" style="width:60px;height:60px;border-radius:50%;border:none;background:#1c2d4d;color:white;font-size:22px">🎤</button><button id="speakerBtn" onclick="toggleSpeaker()" style="width:60px;height:60px;border-radius:50%;border:none;background:#22c55e;font-size:22px">🔊</button></div><button onclick="endCall()" style="width:72px;height:72px;border-radius:50%;background:#ef4444;border:none;font-size:28px">📵</button><div style="font-size:11px;color:#4a5d80">Call kaatne ke liye dabao</div></div>
 </div>
-
 <div id="incomingBox"><div style="font-size:12px;color:#5a7196">INCOMING CALL</div><div id="callerId" style="font-size:28px;color:#22c55e;font-weight:800;margin-top:6px"></div><div style="display:flex;justify-content:center;gap:60px;margin-top:24px"><button onclick="rejectCall()" style="width:64px;height:64px;border-radius:50%;background:#ef4444;border:none;font-size:24px">📵</button><button onclick="answerCall()" style="width:64px;height:64px;border-radius:50%;background:#22c55e;border:none;font-size:24px">📞</button></div><audio id="incomingRing" loop src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_3a0a5e7f8c.mp3?filename=phone-ringing-101147.mp3"></audio></div>
-
 <div id="customAlert"><div class="alert-box"><h3 id="alertTitle" style="color:#22c55e;margin-bottom:8px"></h3><p id="alertMsg" style="color:#cbd5e1;font-size:13px;margin-bottom:18px"></p><button onclick="document.getElementById('customAlert').classList.remove('show')" style="background:#22c55e;color:black;border:none;padding:12px 24px;border-radius:12px;font-weight:800;width:100%">OK</button></div></div>
-
 <script>
 function showAlert(t,m){document.getElementById('alertTitle').innerText=t;document.getElementById('alertMsg').innerText=m;document.getElementById('customAlert').classList.add('show');}
 let peer,currentCall,localStream,timerInt,sec=0,isMuted=false,isSpeaker=true;
 let myId=localStorage.getItem('myPermanentCallId'); if(!myId){myId=Math.floor(100000+Math.random()*900000).toString(); localStorage.setItem('myPermanentCallId',myId);}
 let contacts=JSON.parse(localStorage.getItem('myContacts')||'[]');
-
 function renderContacts(){
   const list=document.getElementById('contactList');
   document.getElementById('contactCount').innerText=contacts.length;
@@ -92,7 +85,6 @@ function renderContacts(){
     list.appendChild(d);
   });
 }
-
 function saveContact(){
   let val=document.getElementById('contactInput').value.trim();
   if(!val){ showAlert('Likho','Ex: Papa 805750'); return; }
@@ -110,19 +102,16 @@ function saveContact(){
 function deleteContact(i){contacts.splice(i,1); localStorage.setItem('myContacts',JSON.stringify(contacts)); renderContacts();}
 function callContact(num){document.getElementById('callId').value=num; makeCall();}
 renderContacts();
-
 peer=new Peer(myId,{config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}});
 peer.on('open',id=>{document.getElementById('myIdDisplay').innerText=id;document.getElementById('statusText').innerText='● Online • Fix Number';});
 peer.on('error',err=>{document.getElementById('outRing').pause(); if(err.type==='peer-unavailable'){showAlert('Galat Number ❌','Number galat hai ya offline hai'); endCall();}});
 peer.on('call',call=>{currentCall=call; document.getElementById('callerId').innerText=call.peer; document.getElementById('incomingBox').classList.add('show'); document.getElementById('incomingRing').play().catch(()=>{});});
-
 async function getMic(){if(localStream) return localStream; try{localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}}); return localStream;}catch(e){showAlert('Mic Block 🎤','Browser me Mic Allow karo'); throw e;}}
 async function makeCall(){const id=document.getElementById('callId').value.trim(); if(!id){showAlert('Number Dalo','Pehle number dalo');return;} if(id===myId){showAlert('Apna Number','Apne number pe call nahi');return;} const s=await getMic(); document.getElementById('callScreen').classList.add('active'); document.getElementById('callIdText').innerText=id; document.getElementById('outRing').play().catch(()=>{}); const call=peer.call(id,s); currentCall=call; setupCall(call);}
 async function answerCall(){document.getElementById('incomingBox').classList.remove('show'); document.getElementById('incomingRing').pause(); const s=await getMic(); currentCall.answer(s); document.getElementById('callScreen').classList.add('active'); document.getElementById('callIdText').innerText=currentCall.peer; setupCall(currentCall);}
 function setupCall(call){call.on('stream',rs=>{document.getElementById('outRing').pause(); const a=document.getElementById('remoteAudio'); a.srcObject=rs; a.volume=isSpeaker?1:0.35; a.play().catch(()=>{}); document.getElementById('callStatusText').innerText='● Connected'; sec=0; clearInterval(timerInt); timerInt=setInterval(()=>{sec++; let m=String(Math.floor(sec/60)).padStart(2,'0'); let s=String(sec%60).padStart(2,'0'); document.getElementById('callTimer').innerText=m+':'+s;},1000);}); call.on('close',()=>endCall());}
 function endCall(){if(currentCall) currentCall.close(); document.getElementById('callScreen').classList.remove('active'); document.getElementById('incomingBox').classList.remove('show'); document.getElementById('incomingRing').pause(); document.getElementById('outRing').pause(); clearInterval(timerInt); document.getElementById('callTimer').innerText='00:00';}
 function rejectCall(){if(currentCall) currentCall.close(); document.getElementById('incomingBox').classList.remove('show'); document.getElementById('incomingRing').pause();}
-
 function toggleMute(){
   if(!localStream){ showAlert('Call Lagao','Pehle call lagao'); return; }
   isMuted=!isMuted;
@@ -143,13 +132,17 @@ function toggleSpeaker(){
   document.getElementById('speakerBtn').innerText=isSpeaker?'🔊':'🔈';
   document.getElementById('hspk').innerText=isSpeaker?'🔊':'🔈';
 }
-
 const kp=document.getElementById('keypad');
 [['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['*',''],['0','+'],['#','']].forEach(k=>{
   const d=document.createElement('div'); d.className='key'; d.innerHTML='<b>'+k[0]+'</b><span>'+k[1]+'</span>';
   d.onclick=()=>{document.getElementById('callId').value+=k[0];};
   kp.appendChild(d);
 });
+</script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js')
+}
 </script>
 </body>
   </html>
