@@ -110,7 +110,19 @@ async function getMic(){if(localStream) return localStream; try{localStream=awai
 async function makeCall(){const id=document.getElementById('callId').value.trim(); if(!id){showAlert('Number Dalo','Pehle number dalo');return;} if(id===myId){showAlert('Apna Number','Apne number pe call nahi');return;} const s=await getMic(); document.getElementById('callScreen').classList.add('active'); document.getElementById('callIdText').innerText=id; document.getElementById('outRing').play().catch(()=>{}); const call=peer.call(id,s); currentCall=call; setupCall(call);}
 async function answerCall(){document.getElementById('incomingBox').classList.remove('show'); document.getElementById('incomingRing').pause(); const s=await getMic(); currentCall.answer(s); document.getElementById('callScreen').classList.add('active'); document.getElementById('callIdText').innerText=currentCall.peer; setupCall(currentCall);}
 function setupCall(call){call.on('stream',rs=>{document.getElementById('outRing').pause(); const a=document.getElementById('remoteAudio'); a.srcObject=rs; a.volume=isSpeaker?1:0.35; a.play().catch(()=>{}); document.getElementById('callStatusText').innerText='● Connected'; sec=0; clearInterval(timerInt); timerInt=setInterval(()=>{sec++; let m=String(Math.floor(sec/60)).padStart(2,'0'); let s=String(sec%60).padStart(2,'0'); document.getElementById('callTimer').innerText=m+':'+s;},1000);}); call.on('close',()=>endCall());}
-function endCall(){if(currentCall) currentCall.close(); document.getElementById('callScreen').classList.remove('active'); document.getElementById('incomingBox').classList.remove('show'); document.getElementById('incomingRing').pause(); document.getElementById('outRing').pause(); clearInterval(timerInt); document.getElementById('callTimer').innerText='00:00';}
+function endCall(){
+  if(currentCall) currentCall.close();
+  document.getElementById('callScreen').classList.remove('active');
+  document.getElementById('incomingBox').classList.remove('show');
+  document.getElementById('incomingRing').pause();
+  document.getElementById('outRing').pause();
+  clearInterval(timerInt);
+  document.getElementById('callTimer').innerText='00:00';
+  if(sec > 5){
+    document.getElementById('adOnCut').style.display='flex';
+    setTimeout(()=>{ document.getElementById('adOnCut').style.display='none'; }, 6000);
+  }
+  }
 function rejectCall(){if(currentCall) currentCall.close(); document.getElementById('incomingBox').classList.remove('show'); document.getElementById('incomingRing').pause();}
 function toggleMute(){
   if(!localStream){ showAlert('Call Lagao','Pehle call lagao'); return; }
@@ -144,6 +156,19 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js')
 }
 </script>
+  <!-- CALL KAATNE PAR AD - POPUP -->
+<div id="adOnCut" style="position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:999999; display:none; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#0f1a2e; border:1px solid #00ff88; border-radius:16px; padding:16px; width:100%; max-width:340px; text-align:center;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <span style="color:#00ff88; font-size:10px; letter-spacing:1px;">ADVERTISEMENT</span>
+      <span onclick="document.getElementById('adOnCut').style.display='none'" style="background:#1c2d4d; color:white; padding:4px 10px; border-radius:20px; font-size:12px; cursor:pointer;">✕ Close</span>
+    </div>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8783442621008969" crossorigin="anonymous"></script>
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-8783442621008969" data-ad-slot="4837881329" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    <div style="margin-top:12px; font-size:10px; color:#4a5d80;">Ad 5 sec me band ho jayega</div>
+  </div>
+</div>
 <!-- FINAL AD - TERA ID -->
 <div style="position:fixed; bottom:0; left:0; right:0; background:#0a1229; border-top:2px solid #00ff88; text-align:center; padding:4px 0; z-index:99999; height:62px;">
   <p style="color:#00ff88; font-size:9px; margin:0; letter-spacing:1px;">ADVERTISEMENT</p>
